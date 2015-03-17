@@ -11,10 +11,9 @@ function main() {
 
   var wvalidator = function(z) {
     var val = $(z.currentTarget).val();
-    window.watch = z;
     if(!isNaN(val) && parseInt(val) >= z.currentTarget.min) {
       $(z.currentTarget).css('background-color', '');
-      $("#result").css(""+z.data, val+"px");
+      $("#result").css(z.data, val+"px");
     } else {
       $(z.currentTarget).css('background-color', '#F59F9F');
       z.preventDefault();
