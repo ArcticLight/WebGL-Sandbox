@@ -4,10 +4,14 @@ window.Sim = {
   actualYavaAlert: null,
   actualGLSLAlert: null,
   lastYavaScript: null,
-  lastGLSLScript: null
+  lastGLSLScript: null,
+  drawContext: null
 };
 
-function main() {
+window.loop = function(a,b,c) {};
+window.frameCount = 1;
+
+function mainFunction() {
   window.yavasrc = CodeMirror.fromTextArea(document.getElementById("yava-src"), {mode: 'javascript', lineNumbers: true});
   window.glslsrc = CodeMirror.fromTextArea(document.getElementById("GLSL-src"), {lineNumbers: true});
 
@@ -44,28 +48,69 @@ function main() {
     }
   });
 
-  window.requestAnimationFrame(update);
+  window.Sim.drawContext = initWebGL(document.getElementById("result"));
+
+  if(!window.Sim.drawContext) {
+    setPendingYavaAlert("Unable to init WebGL. This page won't work in your browser.");
+  } else {
+    window.requestAnimationFrame(update);
+  }
 }
 
 function update(utime) {
-  var estr = "(function() {\n" + window.yavasrc.doc.getValue() + "\n})();";
-  var modified = (estr !== window.Sim.lastYavaScript);
+  updateYavascript(utime);
+}
+
+function initWebGL(canvas) {
+  var gl = null;
+
   try {
-    eval(estr);
-    if(window.Sim.actualYavaAlert !== null) {
-      $(window.Sim.actualYavaAlert).alert('close');
+    gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+  } catch(e) {
+  }
+
+  return gl;
+}
+
+function updateYavascript(utime) {
+  var estr = "window.loop = function(gl, worldTime, frameCount) {\n" + window.yavasrc.doc.getValue() + "\n};";
+  var modified = (estr !== window.Sim.lastYavaScript)
+  var canvas = document.getElementById("result");
+
+  window.frameCount++;
+
+  if(modified) {
+    window.frameCount = 1;
+    try {
+      eval(estr);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      window.loop(window.Sim.drawContext, utime, window.frameCount);
+      if(window.Sim.actualYavaAlert !== null) {
+        $(window.Sim.actualYavaAlert).alert('close');
+      }
+      if(window.Sim.pendingYavaAlert !== null) {
+        window.clearTimeout(window.Sim.pendingyavaAlert);
+        window.Sim.pendingYavaAlert = null;
+      }
+      $('#yava-container').css('border', 'none');
+    } catch (e) {
+      $('#yava-container').css('border', '1px solid red');
+      if(modified) {
+        window.MyError = e;
+        setPendingYavaAlert(e.toString());
+      }
     }
-    if(window.Sim.pendingYavaAlert !== null) {
-      window.clearTimeout(window.Sim.pendingyavaAlert);
-      window.Sim.pendingYavaAlert = null;
-    }
-    $('#yava-container').css('border', 'none');
-  } catch (e) {
-    $('#yava-container').css('border', '1px solid red');
-    if(modified) {
-      setPendingYavaAlert(e.toString());
+  } else {
+    try {
+      window.loop(window.Sim.drawContext, utime, window.frameCount);
+    } catch (e) {
+      $('#yava-container').css('border', '1px solid red');
+      if(modified) {
+        setPendingYavaAlert(e.toString());
+      }
     }
   }
+
   window.Sim.lastYavaScript = estr;
 
   window.requestAnimationFrame(update);
