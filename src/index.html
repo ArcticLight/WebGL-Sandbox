@@ -13,9 +13,18 @@
     <link rel="stylesheet" href="codemirror-5.0/lib/codemirror.css">
     <script src="codemirror-5.0/mode/javascript/javascript.js"></script>
     <style>
-      body { padding-top: 60px; }
+      body {
+        background-color: #CED6D6;
+        padding-top: 60px;
+        color: #667E7E;
+      }
+
+      code {
+        background-color: transparent;
+      }
+
       .wad {
-        background-color: #FEB;
+        background-color: #9FBBB;
         padding: 7px;
       }
       .wad h3 {
@@ -23,7 +32,6 @@
         margin-top: 0;
         width: 100%;
         text-align: center;
-        color: #000;
       }
 
       .wktNoSpin::-webkit-inner-spin-button, .wktNoSpin::-webkit-outer-spin-button {
@@ -43,7 +51,7 @@
         margin-bottom: 4px;
         position: relative;
         padding: 4px;
-        background-color: #ECECEC;
+        background-color: #7ABBBB;
       }
 
       #resultborder {
@@ -92,7 +100,7 @@
         </div>
       </div>
       <div class="row">
-        <div class="col-sm-6 wad">
+        <div class="col-sm-4 wad">
           <h3>Javascript</h3>
           <code>function loop(gl, worldTime, frameCount) {</code>
           <div id="yava-container">
@@ -101,12 +109,21 @@
           <code>}</code>
           <div id="yava-anchor" style="margin-top: 4px;"></div>
         </div>
-        <div class="col-sm-6 wad">
-          <h3>GLSL</h3>
-          <div id="GLSL-container">
-            <textarea id="GLSL-src"></textarea>
+        <div class="col-sm-4 wad">
+          <h3>GLSL Vertex Shader</h3>
+          <code>&nbsp;</code>
+          <div id="GLvert-container">
+            <textarea id="GLvert-src"></textarea>
           </div>
-          <div id="glsl-anchor" style="margin-top: 4px;"></div>
+          <div id="GLvert-anchor" style="margin-top: 4px;"></div>
+        </div>
+        <div class="col-sm-4 wad">
+          <h3>GLSL Fragment Shader</h3>
+          <code>&nbsp;</code>
+          <div id="GLfrag-container">
+            <textarea id="GLfrag-src"></textarea>
+          </div>
+          <div id="GLfrag-anchor" style="margin-top: 4px;"></div>
         </div>
       </div>
     </div>

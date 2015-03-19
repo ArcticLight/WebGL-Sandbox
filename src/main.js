@@ -1,19 +1,26 @@
 window.Sim = {
   pendingYavaAlert: null,
-  pendingGLSLAlert: null,
+  pendingGLfragAlert: null,
+  pendingGLvertAlert: null,
   actualYavaAlert: null,
-  actualGLSLAlert: null,
+  actualGLfragAlert: null,
+  actualGLvertAlert: null,
   lastYavaScript: null,
-  lastGLSLScript: null,
-  drawContext: null
+  lastGLfragScript: null,
+  lastGLvertScript: null,
+  drawContext: null,
+  vertexShader: null,
+  fragmentShader: null
 };
 
 window.loop = function(a,b,c) {};
 window.frameCount = 1;
+window.feedbackTime = 1000;
 
 function mainFunction() {
   window.yavasrc = CodeMirror.fromTextArea(document.getElementById("yava-src"), {mode: 'javascript', lineNumbers: true});
-  window.glslsrc = CodeMirror.fromTextArea(document.getElementById("GLSL-src"), {lineNumbers: true});
+  window.glfragsrc = CodeMirror.fromTextArea(document.getElementById("GLfrag-src"), {lineNumbers: true});
+  window.glvertsrc = CodeMirror.fromTextArea(document.getElementById("GLvert-src"), {lineNumbers: true});
 
   var xvalidator = function(e){
     return e.metaKey || // cmd/ctrl
@@ -72,9 +79,26 @@ function initWebGL(canvas) {
   return gl;
 }
 
+window.MyError;
+
+function updateVertexShader() {
+  var estr = window.glvertsrc.doc.getValue();
+  var modified = (estr !== window.Sim.lastGLvertScript);
+
+  if(modified) {
+    var gl = window.Sim.drawContext;
+    try {
+      var vshade = gl.createShader(gl.VERTEX_SHADER);
+      gl.shaderSource(vshade, estr);
+    } catch(e) {
+    }
+  }
+
+}
+
 function updateYavascript(utime) {
   var estr = "window.loop = function(gl, worldTime, frameCount) {\n" + window.yavasrc.doc.getValue() + "\n};";
-  var modified = (estr !== window.Sim.lastYavaScript)
+  var modified = (estr !== window.Sim.lastYavaScript);
   var canvas = document.getElementById("result");
 
   window.frameCount++;
@@ -83,13 +107,14 @@ function updateYavascript(utime) {
     window.frameCount = 1;
     try {
       eval(estr);
-      gl.viewport(0, 0, canvas.width, canvas.height);
+      window.Sim.drawContext.viewport(0, 0, canvas.width, canvas.height);
       window.loop(window.Sim.drawContext, utime, window.frameCount);
       if(window.Sim.actualYavaAlert !== null) {
         $(window.Sim.actualYavaAlert).alert('close');
+        window.Sim.actualYavaAlert = null;
       }
       if(window.Sim.pendingYavaAlert !== null) {
-        window.clearTimeout(window.Sim.pendingyavaAlert);
+        window.clearTimeout(window.Sim.pendingYavaAlert);
         window.Sim.pendingYavaAlert = null;
       }
       $('#yava-container').css('border', 'none');
@@ -127,7 +152,23 @@ function setPendingYavaAlert(str) {
     window.Sim.actualYavaAlert = makeErrorAlert(this.data);
     $("#yava-anchor").after(window.Sim.actualYavaAlert);
     window.Sim.pendingYavaAlert = null;
-  }).bind({data: str}),2000);
+  }).bind({data: str}), feedbackTime);
+}
+
+function setPendingGLvertAlert(str) {
+  alert(21);
+  if(window.Sim.pendingGLvertAlert !== null) {
+    window.clearTimeout(window.Sim.pendingGLvertAlert);
+  }
+  window.Sim.pendingGLvertAlert = window.setTimeout((function() {
+    alert(6);
+    if(window.Sim.actualGLvertAlert !== null) {
+      $(window.Sim.actualGLvertAlert).alert('close');
+    }
+    window.Sim.actualGLvertAlert = makeErrorAlert(this.data);
+    $("#GLvert-anchor").after(window.Sim.actualGLvertAlert);
+    window.Sim.pendingGLvertAlert = null;
+  }).bind({data: str}), feedbackTime);
 }
 
 function makeErrorAlert(str) {
