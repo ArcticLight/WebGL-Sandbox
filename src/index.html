@@ -12,6 +12,7 @@
     <script src="codemirror-5.0/lib/codemirror.js"></script>
     <link rel="stylesheet" href="codemirror-5.0/lib/codemirror.css">
     <script src="codemirror-5.0/mode/javascript/javascript.js"></script>
+    <script type='text/javascript' id='lt_ws' src='http://localhost:62773/socket.io/lighttable/ws.js'></script>
     <style>
       body {
         background-color: #CED6D6;
@@ -62,6 +63,22 @@
         padding: inherit;
       }
 
+      #yava-container {
+        position: relative;
+      }
+
+      #yava-shade {
+        background-color: #FFBCCC;
+        height: 100%;
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: none;
+        z-index: 999;
+        opacity: .5;
+      }
+
       #result {
         box-sizing: content-box;
         border: 1px solid black;
@@ -104,7 +121,22 @@
           <h3>Javascript</h3>
           <code>function loop(gl, worldTime, frameCount) {</code>
           <div id="yava-container">
-            <textarea id="yava-src"></textarea>
+            <textarea id="yava-src">gl.clearColor(Math.abs((frameCount%160-80)/80),1,1,1)
+gl.clear(gl.COLOR_BUFFER_BIT);
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+     0.0,  0.5,
+    -0.5, -0.5,
+     0.5, -0.5
+]), gl.STATIC_DRAW);
+
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+gl.clearColor(0, 0, 0, 1);
+gl.clear(gl.COLOR_BUFFER_BIT);
+gl.drawArrays(gl.TRIANGLES, 0, 3);</textarea>
+            <div id="yava-shade"></div>
           </div>
           <code>}</code>
           <div id="yava-anchor" style="margin-top: 4px;"></div>
@@ -113,7 +145,10 @@
           <h3>GLSL Vertex Shader</h3>
           <code>&nbsp;</code>
           <div id="GLvert-container">
-            <textarea id="GLvert-src"></textarea>
+            <textarea id="GLvert-src">attribute vec2 vertexCoord;
+void main() {
+  gl_Position = vec4(vertexCoord, 0, 1);
+}</textarea>
           </div>
           <div id="GLvert-anchor" style="margin-top: 4px;"></div>
         </div>
@@ -121,7 +156,9 @@
           <h3>GLSL Fragment Shader</h3>
           <code>&nbsp;</code>
           <div id="GLfrag-container">
-            <textarea id="GLfrag-src"></textarea>
+            <textarea id="GLfrag-src">void main(void){
+    gl_FragColor = vec4(1, 1, 1, 1);
+}</textarea>
           </div>
           <div id="GLfrag-anchor" style="margin-top: 4px;"></div>
         </div>

@@ -9,8 +9,12 @@ window.Sim = {
   lastGLfragScript: null,
   lastGLvertScript: null,
   drawContext: null,
-  vertexShader: null,
-  fragmentShader: null
+  vertexShader: false,
+  compiledVertex: null,
+  fragmentShader: false,
+  compiledFragment: null,
+  fullShader: false,
+  compiledFullShader: null
 };
 
 window.loop = function(a,b,c) {};
@@ -65,7 +69,14 @@ function mainFunction() {
 }
 
 function update(utime) {
-  updateYavascript(utime);
+  if(updateShader()) {
+    $("#yava-shade").css('display', 'none');
+    updateYavascript(utime);
+  } else {
+    $("#yava-shade").css('display', 'block');
+  }
+
+  window.requestAnimationFrame(update);
 }
 
 function initWebGL(canvas) {
@@ -81,19 +92,101 @@ function initWebGL(canvas) {
 
 window.MyError;
 
-function updateVertexShader() {
+function updateShader() {
+  //First, the vertex shader
   var estr = window.glvertsrc.doc.getValue();
   var modified = (estr !== window.Sim.lastGLvertScript);
+  var fstr = window.glfragsrc.doc.getValue();
+  var fragmod = (estr !== window.Sim.lastGLfragScript);
+  modified = modified || fragmod
 
   if(modified) {
     var gl = window.Sim.drawContext;
     try {
       var vshade = gl.createShader(gl.VERTEX_SHADER);
       gl.shaderSource(vshade, estr);
+      gl.compileShader(vshade);
+      if(!gl.getShaderParameter(vshade, gl.COMPILE_STATUS)) {
+        throw(gl.getShaderInfoLog(vshade));
+      }
+      if(window.Sim.actualGLvertAlert !== null) {
+        $(window.Sim.actualGLvertAlert).alert('close');
+        window.Sim.actualGLvertAlert = null;
+      }
+      if(window.Sim.pendingGLvertAlert !== null) {
+        window.clearTimeout(window.Sim.pendingGLvertAlert);
+        window.Sim.pendingGLvertAlert = null;
+      }
+      $('#GLvert-container').css('border', 'none');
+      window.Sim.vertexShader = true;
+      window.Sim.compiledVertex = vshade;
     } catch(e) {
+      $('#GLvert-container').css('border', '1px solid red');
+      setPendingGLvertAlert(e.toString());
+      window.Sim.vertexShader = false;
+      window.Sim.compiledVertex = null;
     }
   }
 
+  window.Sim.lastGLvertScript = estr;
+
+  //Next, the fragment shader.
+  estr = fstr;
+  if(modified) {
+    try {
+      var fshade = gl.createShader(gl.FRAGMENT_SHADER);
+      gl.shaderSource(fshade, estr);
+      gl.compileShader(fshade);
+      if(!gl.getShaderParameter(fshade, gl.COMPILE_STATUS)) {
+        throw(gl.getShaderInfoLog(fshade));
+      }
+      if(window.Sim.actualGLfragAlert !== null) {
+        window.clearTimeout(window.Sim.pendingGLfragAlert);
+        window.Sim.pendingGLfragAlert = null;
+      }
+      $('#GLfrag-container').css('border', 'none');
+      window.Sim.fragmentShader = true;
+      window.Sim.compiledFragment = fshade;
+    } catch(e) {
+      $('#GLfrag-container').css('border', '1px solid red');
+      setPendingGLfragAlert(e.toString());
+      window.Sim.fragmentShader = false;
+      window.Sim.compiledFragment = null;
+    }
+  }
+
+  window.Sim.lastGLfragScript = estr;
+
+  //link shaders
+  if(modified) {
+    var shader = gl.createProgram();
+    try {
+      gl.attachShader(shader,window.Sim.compiledVertex);
+      gl.attachShader(shader,window.Sim.compiledFragment);
+      gl.linkProgram(shader);
+      if(!gl.getProgramParameter(shader, gl.LINK_STATUS)) {
+        var error = gl.getProgramInfoLog(shader);
+        gl.deleteProgram(shader);
+        throw(error);
+      }
+      gl.useProgram(shader);
+      window.Sim.compiledFullShader = shader;
+      window.Sim.fullShader = true;
+    } catch(e) {
+      window.Sim.compiledFullShader = null;
+      window.Sim.fullShader = false;
+      /*Attach the alert to the thing which was last modified.*/
+      if(modified) {
+        $('#GLvert-container').css('border', '1px solid red');
+        setPendingGLvertAlert(e.toString());
+      } else {
+        $('#GLfrag-container').css('border', '1px solid red');
+        setPendingGLfragAlert(e.toString());
+      }
+    }
+  }
+
+  return window.Sim.vertexShader && window.Sim.fragmentShader && window.Sim.fullShader;
 }
 
 function updateYavascript(utime) {
@@ -137,8 +230,6 @@ function updateYavascript(utime) {
   }
 
   window.Sim.lastYavaScript = estr;
-
-  window.requestAnimationFrame(update);
 }
 
 function setPendingYavaAlert(str) {
@@ -156,18 +247,30 @@ function setPendingYavaAlert(str) {
 }
 
 function setPendingGLvertAlert(str) {
-  alert(21);
   if(window.Sim.pendingGLvertAlert !== null) {
     window.clearTimeout(window.Sim.pendingGLvertAlert);
   }
   window.Sim.pendingGLvertAlert = window.setTimeout((function() {
-    alert(6);
     if(window.Sim.actualGLvertAlert !== null) {
       $(window.Sim.actualGLvertAlert).alert('close');
     }
     window.Sim.actualGLvertAlert = makeErrorAlert(this.data);
     $("#GLvert-anchor").after(window.Sim.actualGLvertAlert);
     window.Sim.pendingGLvertAlert = null;
+  }).bind({data: str}), feedbackTime);
+}
+
+function setPendingGLfragAlert(str) {
+  if(window.Sim.pendingGLfragAlert !== null) {
+    window.clearTimeout(window.Sim.pendingGLfragAlert);
+  }
+  window.Sim.pendingGLfragAlert = window.setTimeout((function() {
+    if(window.Sim.actualGLfragAlert !== null) {
+      $(window.Sim.actualGLfragAlert).alert('close');
+    }
+    window.Sim.actualGLfragAlert = makeErrorAlert(this.data);
+    $("#GLfrag-anchor").after(window.Sim.actualGLfragAlert);
+    window.Sim.pendingGLfragAlert = null;
   }).bind({data: str}), feedbackTime);
 }
 
